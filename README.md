@@ -4,7 +4,7 @@
 
 ConSeals is an intelligent Human-in-the-Loop PII Redaction Review Workbench that helps reviewers safely validate and correct AI-generated redactions before sensitive documents are shared.
 
-*Built for the **SprintFour Hackathon**.*
+Video Demo :- https://drive.google.com/file/d/1pTSsv9wcK8psHDbeElGqugfUb6NlyAl2/view?usp=sharing
 
 ---
 
