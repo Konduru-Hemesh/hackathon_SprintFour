@@ -1,6 +1,49 @@
-# ConSeal: Intelligent PII Redaction Review Workbench
+# 🛡️ ConSeals: Intelligent PII Redaction Review Workbench
 
-> An intelligent, human-in-the-loop PII redaction review and correction workbench.
+### AI detects. Humans decide.
+
+ConSeals is an intelligent Human-in-the-Loop PII Redaction Review Workbench that helps reviewers safely validate and correct AI-generated redactions before sensitive documents are shared.
+
+*Built for the **SprintFour Hackathon**.*
+
+---
+
+![TypeScript](https://img.shields.io/badge/typescript-%23007acc.svg?style=for-the-badge&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361dafb)
+![Node.js](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
+![Express.js](https://img.shields.io/badge/express.js-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361dafb)
+![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Zustand](https://img.shields.io/badge/zustand-%234f4f4f.svg?style=for-the-badge)
+![Vitest](https://img.shields.io/badge/vitest-%23729b1b.svg?style=for-the-badge&logo=vitest&logoColor=white)
+![Accessibility](https://img.shields.io/badge/accessibility-A11Y-blue?style=for-the-badge)
+![MIT License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
+
+---
+
+# 📚 Table of Contents
+
+- [Overview](#-overview)
+- [The Problem](#-the-problem)
+- [Our Solution](#-our-solution)
+- [Highlights](#-highlights)
+- [Key Features](#-key-features)
+- [Screenshots](#-screenshots)
+- [Architecture](#-architecture)
+- [Folder Structure](#-folder-structure)
+- [Technology Stack](#-technology-stack)
+- [Product Design Decisions](#-product-design-decisions)
+- [Engineering Decisions](#-engineering-decisions)
+- [Testing](#-testing)
+- [Accessibility](#-accessibility-a11y)
+- [Tradeoffs](#-tradeoffs)
+- [Future Improvements](#-future-improvements)
+- [Installation](#-installation)
+- [Quick Start](#-quick-start)
+- [Project Flow](#-project-flow)
+- [Demo Instructions](#-demo-instructions-for-judges)
+- [Why This Project Stands Out](#-why-this-project-stands-out)
+- [Acknowledgements](#-acknowledgements)
+- [License](#-license)
 
 ---
 
@@ -8,7 +51,7 @@
 
 Artificial Intelligence is highly effective at identifying pattern-based Personal Identifiable Information (PII) like emails or SSNs, but it remains fundamentally flawed when handling context-dependent information. Names, addresses, and custom identifiers in corporate communications frequently lead to false positives (redacting harmless text) and false negatives (failing to redact sensitive data).
 
-Because missed PII poses severe legal, regulatory, and privacy risks, AI-generated redaction logs cannot be trusted blindly. **ConSeal** exists to bridge the gap. It is a human-in-the-loop workflow interface designed to help privacy compliance reviewers quickly audit, correct, and verify machine-generated redaction suggestions before documents are distributed.
+Because missed PII poses severe legal, regulatory, and privacy risks, AI-generated redaction logs cannot be trusted blindly. **ConSeals** exists to bridge the gap. It is a human-in-the-loop workflow interface designed to help privacy compliance reviewers quickly audit, correct, and verify machine-generated redaction suggestions before documents are distributed.
 
 ---
 
@@ -23,11 +66,25 @@ AI-driven redaction pipelines suffer from three main operational weaknesses:
 
 ## 💡 Our Solution
 
-ConSeal is built around a simple philosophy: **AI detects, but humans decide**. It optimizes the reviewer's cognitive load and speeds up verification through:
+ConSeals is built around a simple philosophy: **AI detects, but humans decide**. It optimizes the reviewer's cognitive load and speeds up verification through:
 *   **Guided Review Workspace**: Directing attention immediately to unresolved High-Risk suggestions (e.g. SSNs, Bank Accounts) while keeping Low-Risk suggestions (e.g. Dates, Locations) accessible but non-intrusive.
 *   **Attention Prioritization (Focus Mode)**: Dims all surrounding document text, isolating only the active suggestion to help the reviewer make decisions instantly without distraction.
 *   **Decisions Propagation**: Automatically updates all repeating text occurrences in a document using word-boundary matching to eliminate repetitive tasks.
 *   **Export Safety Gate**: Imposes a hard-stop safety checklist to ensure that no document can be exported while high-risk suggested spans remain unreviewed.
+
+---
+
+## ⚡ Highlights
+
+*   **Human-in-the-loop AI review** – Optimized interaction balances automation with reviewer precision.
+*   **Keyboard-first workflow** – High-productivity shortcut layouts for rapid navigation and triage.
+*   **Entity propagation** – Automated repeating term matching via boundary-exact updates.
+*   **Export safety gate** – Strict checklist validation blocks leaks of unresolved high-risk data.
+*   **Manual custom redactions** – Select any document text dynamically to apply instant redaction tags.
+*   **Accessibility support** – Compliant tab flows, ARIA live feeds, and clear visible outlines.
+*   **Optimistic UI updates** – Blazing fast transitions with background syncing and rollbacks.
+*   **Enterprise-inspired interface** – Premium slate, indigo, and emerald styling suited for professional audits.
+*   **Fully tested** – High coverage unit testing across frontend state stores and backend sanitizers.
 
 ---
 
@@ -62,25 +119,21 @@ ConSeal is built around a simple philosophy: **AI detects, but humans decide**. 
 
 ## 📸 Screenshots
 
-### Document List
-<!-- Screenshot Placeholder: document_list.png -->
-*(Visual dashboard showing all files, their unreviewed span counts, and unresolved high-risk warnings.)*
+#### Landing Page
+An enterprise-grade dashboard illustrating session activities, upload spaces, workspace stats, and interactive demo scenarios.
+![Landing Page](images/landing.png)
 
-### Document Review Workspace
-<!-- Screenshot Placeholder: review_workspace.png -->
-*(Split-pane interface containing the document reader, selected identifier details panel, and visual progress gauges.)*
+#### Review Workspace
+Split-pane interface offering natural reading controls, keyboard shortcuts, progress indicators, and risk categorization panels.
+![Review Workspace](images/review.png)
 
-### Focus Mode Active
-<!-- Screenshot Placeholder: focus_mode.png -->
-*(Context isolation view: surrounding text is dimmed, highlighting the active suggestion.)*
+#### Summary Screen
+Dynamic completion summary with safety checklist gate status, download controls, and redacted output copy-paste preview.
+![Summary Screen](images/summary.png)
 
-### Entity Propagation Prompt
-<!-- Screenshot Placeholder: entity_propagation.png -->
-*(Interactive prompt showing count of matching occurrences and keyboard actions to propagate.)*
-
-### Export Safety Gate & Summary
-<!-- Screenshot Placeholder: safety_gate.png -->
-*(Summary panel showing the final checklists, resolving links for missed spans, and download options.)*
+#### Manual Selection
+Contextual floating annotation toolbar triggered by highlight selections, allowing immediate custom redactions.
+![Manual Selection](images/manual-selection.png)
 
 ---
 
@@ -90,26 +143,25 @@ ConSeal is built around a simple philosophy: **AI detects, but humans decide**. 
                  +-----------------------------------------+
                  |              User Browser               |
                  +-----------------------------------------+
-                                      │
-                                      ▼
+                                       │
+                                       ▼
                  +-----------------------------------------+
                  |            React Frontend               |
                  | (Components, ReviewScreen, DocumentList) |
                  +-----------------------------------------+
-                                      │
-                                      ▼
+                                       │
+                                       ▼
                  +-----------------------------------------+
                  |             Zustand Store               |
                  |       (Global State, Toast Queue)       |
                  +-----------------------------------------+
-                                      │
-                         HTTP REST    │   Optimistic Updates
-                         Requests     ▼   & Sync Announcements
+                                       │
+                                       ▼   Optimistic Updates & Sync
                  +-----------------------------------------+
                  |           Express API Server            |
                  +-----------------------------------------+
-                                      │
-                                      ▼
+                                       │
+                                       ▼
                  +-----------------------------------------+
                  |         In-Memory Data Service          |
                  |    (Bounds, Overlaps, Text Sync)        |
@@ -134,7 +186,7 @@ ConSeal is built around a simple philosophy: **AI detects, but humans decide**. 
 │   │   ├── data/                # Sample document fixtures
 │   │   ├── middleware/          # Global error handler and payload sanitizers
 │   │   ├── routes/              # Express endpoint routers
-│   │   ├── services/            # In-memory database and coordination validator
+│   │   ├── services/            # In-memory database and validator
 │   │   └── app.ts               # Server entry point
 │   ├── package.json
 │   └── tsconfig.json
@@ -201,6 +253,7 @@ When a user updates a span's status, the frontend immediately reflects the state
 Run with `npm run test --prefix frontend`. Coverage includes:
 *   `entity.test.ts`: Word-boundary regex verification, special characters, and lookaround assertion correctness.
 *   `safetyGate.test.ts`: Asserts export safety gate blockers under various unresolved risk distributions.
+*   `manualRedaction.test.ts`: Covers manual selection additions, risk evaluations, and overlap prevention validations.
 
 ### Backend Tests
 Run with `npm run test --prefix backend`. Coverage includes:
@@ -210,7 +263,7 @@ Run with `npm run test --prefix backend`. Coverage includes:
 
 ## ♿ Accessibility (A11y)
 
-ConSeal is fully accessible:
+ConSeals is fully accessible:
 *   **Focus Visibility**: Clean high-contrast ring focus styling (`focus:ring-1 focus:ring-slate-500`) applied to all search controls, document cards, and review buttons.
 *   **ARIA announcements**: An `aria-live="polite"` region reads status reports to screen readers when decisions are applied or propagated.
 *   **Natural Focus Flows**: Standard HTML keyboard `Tab` flow is preserved. Reviewers can tab out of the editor screen seamlessly.
@@ -230,9 +283,33 @@ ConSeal is fully accessible:
 
 ## 🔮 Future Improvements
 
-1.  **Persistent Storage**: Integrate PostgreSQL with Prisma ORM to save document sessions across server restarts.
-2.  **Entity Auto-Highlighting**: Enable reviewers to manually highlight arbitrary text ranges in the editor and click "Add Custom Span" to register new entities.
-3.  **Audit History & Rollback**: Maintain a historic ledger of who accepted/rejected each span, allowing infinite undo/redo states across review sessions.
+1.  **LLM-Powered Detection**: Integrate fine-tuned LLM scanners to improve parsing accuracy for naming nuances.
+2.  **OCR Support**: Enable direct scanner uploads for image-based PDFs or raw snapshots.
+3.  **Multi-user Collaboration**: Support real-time multiplayer review logs and document locks.
+4.  **Audit History & Versioning**: Maintain an immutable changelog of edits to let users rollback or inspect compliance.
+5.  **Cloud Storage**: Enable persistent S3/GCS bucket connectors.
+6.  **Review Analytics**: Render charts detailing team redaction accuracy, common false positives, and average triage speeds.
+
+---
+
+## ⚡ Quick Start
+
+Install dependencies and start the app in development mode immediately:
+
+```bash
+# Clone the repository
+git clone https://github.com/Konduru-Hemesh/hackathon_SprintFour.git
+cd hackathon_SprintFour
+
+# Install dependencies for both frontend and backend
+npm install --prefix backend && npm install --prefix frontend
+
+# Run the project services
+# (Terminal 1)
+npm run dev --prefix backend
+# (Terminal 2)
+npm run dev --prefix frontend
+```
 
 ---
 
@@ -275,34 +352,55 @@ npm run build
 
 ## 📋 Project Flow
 
+```mermaid
+graph TD
+  Upload[Upload Document] --> AISuggestions[AI Suggestions & Classification]
+  AISuggestions --> HumanReview[Human Review Workspace]
+  HumanReview --> Propagation[Entity Decision Propagation]
+  HumanReview --> ManualRedactions[Manual Custom Redactions]
+  Propagation --> SafetyGate[Export Safety Gate Checklist]
+  ManualRedactions --> SafetyGate
+  SafetyGate --> Export[Download Redacted Files & Logs]
 ```
-   [ Document Index ] ──(Select Document)──> [ Review Editor ]
-                                                    │
-                                           (Accept/Reject Spans)
-                                                    │
-                                                    ▼
-   [ Summary Screen ] <──(Finish Review)───── [ Propagation ]
-          │
-     (Safety Gate)
-          │
-          └───(All High-Risk Resolved?)───> [ Download Exports ]
+
+```
+    [ Document Index ] ──(Select Document)──> [ Review Editor ]
+                                                     │
+                                            (Accept/Reject Spans)
+                                                     │
+                                                     ▼
+    [ Summary Screen ] <──(Finish Review)───── [ Propagation ]
+           │
+      (Safety Gate)
+           │
+           └───(All High-Risk Resolved?)───> [ Download Exports ]
 ```
 
 ---
 
 ## 🎮 Demo Instructions for Judges
 
-To evaluate the application's robust feature set, perform the following steps:
+To evaluate the application's robust feature set, perform the following walkthrough steps:
 
-1.  **Open Document B** (*Document B: Investigation Record*) from the list.
-2.  Select the name **"John Smith"** (marked in Red as High-Risk).
-3.  Press **`a`** (or click *Accept [A]*).
-4.  **Observe the propagation prompt**: Select **[Enter] Apply to All**.
-    *   *Verify:* All instances of "John Smith" across the document turn green, and a success toast confirmation pops up.
-5.  Try to search for **"Doc C"** in the document index list search bar to verify the filtered list. Type a random string to observe the empty search state.
-6.  Navigate to the **Summary Screen** by clicking **Finish Review**.
-7.  **Observe the Safety Gate**: Since unresolved High-Risk items still exist, the download button is disabled.
-8.  Click on any unresolved item in the checklist to jump back and resolve it. Once resolved, return and download your redacted files!
+1.  **Upload Resume / Select Scenario**: Click on **Document B** (*Document B: Investigation Record*) or upload a custom sample text file.
+2.  **Review AI Mistakes**: Look at highlighted identifiers in the split-pane workspace.
+3.  **Reject False Positives**: Spot non-PII words flagged as suggestions. Press **`r`** (or click *Reject [R]*) to dismiss them.
+4.  **Accept True Positives**: Find actual PII spans. Press **`a`** (or click *Accept [A]*).
+5.  **Observe Propagation**: When accepting **"John Smith"**, select **[Enter] Apply to All** on the popup modal. Notice all instances of "John Smith" turn green automatically.
+6.  **Manually Create a Redaction**: Highlight any plain unredacted text in the document viewer. Click the floating **Create Redaction** tooltip and set its entity class (e.g. `NAME`).
+7.  **Finish Review**: Click **Finish Review** in the top right to head to the Summary screen.
+8.  **Verify Safety Gate & Export**: If any high-risk elements are unreviewed, notice the download button is disabled. Click the checklist jumps to resolve them. Once all are resolved, export and download your clean text and logs!
+
+---
+
+## 📊 Project Metrics
+
+*   **React Components**: 15+ modular components (Highlights, Badges, Toast, Modals)
+*   **REST APIs**: Sync endpoints, document fetch routing, and coordinate verification services
+*   **Keyboard Shortcuts**: Arrow navigation (`ArrowDown` / `ArrowUp`), Decisions (`a` / `r`), Mode Toggles (`Space`)
+*   **Unit Tests**: 19 robust coverage tests across frontend, backend, and coordinate validators
+*   **Accessibility Features**: ARIA announcements, semantic tags, and focus-ring indicator styles
+*   **Risk Levels**: Dynamic split categorization (`High-Risk` / `Low-Risk`)
 
 ---
 
@@ -313,6 +411,19 @@ To evaluate the application's robust feature set, perform the following steps:
 *   **✔ UX Polish**: Subtle saving indicators, clean keyboard workflows, and responsive visual design look and feel premium.
 *   **✔ Accessibility Integrity**: Built from the ground up to respect screen readers and native keyboard navigation.
 *   **✔ Pragmatic Tradeoffs**: Focuses dev hours on features that maximize value (propagation, safety gates) rather than databases.
+
+---
+
+## 🙏 Acknowledgements
+
+Built for the SprintFour Hackathon.
+
+Designed with a focus on:
+*   **Human-Centered AI**: Supporting humans in review processes rather than blindly automating them.
+*   **Privacy Engineering**: Protecting sensitive identities at boundary level.
+*   **Human-in-the-Loop Systems**: Providing stateful interfaces for dynamic decision logs.
+*   **Accessibility**: Ensuring tools are functional for compliance officers of all visual abilities.
+*   **Product Thinking**: Focusing on real-world workflow efficiency problems.
 
 ---
 
