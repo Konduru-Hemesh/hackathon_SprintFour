@@ -113,24 +113,28 @@ export const initialDocuments: Document[] = [
     id: "doc-a",
     title: "Document A: Business Letter (Repeat Entity Blind Spot)",
     text: docAText,
+    originalText: docAText,
     spans: docASpans
   },
   {
     id: "doc-b",
     title: "Document B: Investigation Record (False Positive & Adjacent PII)",
     text: docBText,
+    originalText: docBText,
     spans: docBSpans
   },
   {
     id: "doc-c-empty",
     title: "Document C: Empty Document State",
     text: "",
+    originalText: "",
     spans: []
   },
   {
     id: "doc-d-clean",
     title: "Document D: No Suggested Redactions",
     text: "This document is clean and has absolutely no sensitive identifiers contained in it.",
+    originalText: "This document is clean and has absolutely no sensitive identifiers contained in it.",
     spans: []
   }
 ];

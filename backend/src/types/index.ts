@@ -15,5 +15,6 @@ export interface Document {
   id: string;
   title: string;
   text: string;
+  originalText?: string;
   spans: RedactionSpan[];
 }

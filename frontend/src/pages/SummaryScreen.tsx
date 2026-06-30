@@ -16,6 +16,13 @@ export const SummaryScreen: React.FC = () => {
   const { currentDocument, setPage, selectSpan, addToast } = useStore();
   const [exportSuccess, setExportSuccess] = useState(false);
 
+  const maskSpanText = (spanText: string) => {
+    return spanText
+      .split('')
+      .map(char => (char === ' ' || char === '\t' || char === '\n' ? char : '█'))
+      .join('');
+  };
+
   // 1. Calculate checklist items
   const stats = useMemo(() => {
     if (!currentDocument) {
@@ -71,7 +78,7 @@ export const SummaryScreen: React.FC = () => {
   // 2. Generate Redacted Text Output
   const redactedText = useMemo(() => {
     if (!currentDocument) return '';
-    const text = currentDocument.text;
+    const text = currentDocument.originalText ?? currentDocument.text;
     const spans = currentDocument.spans;
     if (spans.length === 0) return text;
 
@@ -82,7 +89,8 @@ export const SummaryScreen: React.FC = () => {
 
     let output = text;
     acceptedSpans.forEach(span => {
-      const replacement = `[REDACTED: ${span.type.toUpperCase()}]`;
+      // Preserve spaces and punctuation layout while masking the visible characters.
+      const replacement = maskSpanText(text.slice(span.start, span.end));
       output = output.slice(0, span.start) + replacement + output.slice(span.end);
     });
 
@@ -142,14 +150,16 @@ export const SummaryScreen: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto py-10 px-6">
       
-      {/* Back to review link */}
-      <button
-        onClick={() => setPage('review')}
-        className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors mb-6 cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-500 rounded-sm"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" />
-        Back to review workspace
-      </button>
+      {/* Top Header Row with Back link */}
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={() => setPage('review')}
+          className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-500 rounded-sm"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back to review workspace
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
@@ -341,7 +351,7 @@ export const SummaryScreen: React.FC = () => {
           </h3>
           
           <div className="flex-1 bg-slate-950 border border-slate-850 p-5 rounded-md overflow-y-auto max-h-[500px]">
-            {currentDocument.text ? (
+            {(currentDocument.originalText ?? currentDocument.text) ? (
               <p className="text-sm text-slate-300 leading-relaxed font-mono whitespace-pre-wrap select-all">
                 {redactedText}
               </p>

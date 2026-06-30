@@ -58,11 +58,12 @@ class DocumentService {
                     return { success: false, error: `Invalid payload for new span ID: ${decision.id}. Missing required fields.` };
                 }
                 // Coordinate Validation
-                if (decision.start < 0 || decision.end > doc.text.length || decision.start >= decision.end) {
+                const sourceText = doc.originalText ?? doc.text;
+                if (decision.start < 0 || decision.end > sourceText.length || decision.start >= decision.end) {
                     return { success: false, error: `Coordinate out of bounds: start ${decision.start}, end ${decision.end} for span ID ${decision.id}` };
                 }
                 // Text Verification
-                const slicedText = doc.text.slice(decision.start, decision.end);
+                const slicedText = sourceText.slice(decision.start, decision.end);
                 if (slicedText.toLowerCase() !== decision.text.toLowerCase()) {
                     return { success: false, error: `Text mismatch at [${decision.start}:${decision.end}]. Expected "${decision.text}" but got "${slicedText}"` };
                 }

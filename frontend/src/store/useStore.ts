@@ -45,6 +45,8 @@ interface StoreState {
 }
 
 export const useStore = create<StoreState>((set, get) => {
+  const getSourceText = (document: Document) => document.originalText ?? document.text;
+
   // Helper to select the first unresolved high-risk span, or first unresolved low-risk, or first span
   const selectInitialSpan = (spans: RedactionSpan[]) => {
     if (spans.length === 0) return null;
@@ -217,6 +219,7 @@ export const useStore = create<StoreState>((set, get) => {
     ) => {
       const { currentDocument, setPropagationPrompt } = get();
       if (!currentDocument) return;
+      const sourceText = getSourceText(currentDocument);
 
       const activeSpan = currentDocument.spans.find(s => s.id === spanId);
       if (!activeSpan) return;
@@ -294,7 +297,7 @@ export const useStore = create<StoreState>((set, get) => {
       }
 
       // Find all matches for entity linking (case-insensitive text search)
-      const allMatches = findEntityOccurrences(currentDocument.text, activeSpan.text);
+      const allMatches = findEntityOccurrences(sourceText, activeSpan.text);
 
       // Identify other spans that match the same text (case-insensitive)
       const matchedSpans = currentDocument.spans.filter(
@@ -485,6 +488,7 @@ export const useStore = create<StoreState>((set, get) => {
     ) => {
       const { currentDocument, setPropagationPrompt, addToast } = get();
       if (!currentDocument) return;
+      const sourceText = getSourceText(currentDocument);
 
       const riskLevel = ['name', 'phone', 'email', 'address', 'ssn'].includes(type) ? 'high' : 'low';
       const entityGroupId = `group-${text.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
@@ -525,7 +529,7 @@ export const useStore = create<StoreState>((set, get) => {
       const isUploaded = currentDocument.id.startsWith('upload_');
       
       // Determine propagation availability
-      const allMatches = findEntityOccurrences(currentDocument.text, text);
+      const allMatches = findEntityOccurrences(sourceText, text);
       const matchedSpans = finalSpans.filter(
         s => s.id !== newSpanId && s.text.toLowerCase() === text.toLowerCase()
       );

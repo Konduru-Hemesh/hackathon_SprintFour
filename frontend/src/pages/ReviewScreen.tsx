@@ -15,7 +15,7 @@ import {
   ListRestart,
   Sparkles,
   ShieldCheck,
-  Pencil
+  Pencil,
 } from 'lucide-react';
 import type { RedactionSpan } from '../types';
 
@@ -35,7 +35,7 @@ export const ReviewScreen: React.FC = () => {
     clearError,
     syncStatus,
     addToast,
-    addManualSpan
+    addManualSpan,
   } = useStore();
 
   const [announcement, setAnnouncement] = useState('');
@@ -87,7 +87,7 @@ export const ReviewScreen: React.FC = () => {
     if (startOffset !== -1 && endOffset !== -1) {
       const start = Math.min(startOffset, endOffset);
       const end = Math.max(startOffset, endOffset);
-      const text = currentDocument.text.slice(start, end);
+      const text = (currentDocument.originalText ?? currentDocument.text).slice(start, end);
       
       if (!text.trim()) {
         setSelection(null);
@@ -276,7 +276,7 @@ export const ReviewScreen: React.FC = () => {
   // 3. Inline Rendering Text Chunks
   const renderedDocumentText = useMemo(() => {
     if (!currentDocument) return null;
-    const text = currentDocument.text;
+    const text = currentDocument.originalText ?? currentDocument.text;
     const spans = currentDocument.spans;
 
     if (text.length === 0) {
@@ -698,6 +698,64 @@ export const ReviewScreen: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Entity & Risk Legend */}
+          <div className="bg-slate-900/40 border border-slate-900 rounded-lg p-5">
+            <h3 className="text-xs font-semibold text-slate-450 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-indigo-400 animate-pulse" />
+              Entity & Risk Legend
+            </h3>
+            <p className="text-[10px] text-slate-500 mb-3.5 leading-normal">
+              ConSeals uses a semantic coloring system to categorize detected entities:
+            </p>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500/30 border border-rose-500/80 shrink-0" />
+                <span className="text-slate-300">Name</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-500/30 border border-purple-500/80 shrink-0" />
+                <span className="text-slate-300">Email</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500/30 border border-blue-500/80 shrink-0" />
+                <span className="text-slate-300">Phone</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-orange-500/30 border border-orange-500/80 shrink-0" />
+                <span className="text-slate-300">Address</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500/30 border border-red-500/80 shrink-0" />
+                <span className="text-slate-300">SSN</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-indigo-500/30 border border-indigo-500/80 shrink-0" />
+                <span className="text-slate-300">Passport</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/30 border border-emerald-500/80 shrink-0" />
+                <span className="text-slate-300">Bank / IBAN</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-cyan-500/30 border border-cyan-500/85 border-dashed shrink-0" />
+                <span className="text-slate-300">Manual Added</span>
+              </div>
+            </div>
+            
+            <div className="h-px bg-slate-900/60 my-3.5" />
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400 font-medium">High Risk (Pulse)</span>
+                <span className="text-red-400 font-semibold uppercase tracking-wider text-[9px] px-1 bg-red-950/40 rounded border border-red-900/30">Immediate Action</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400 font-medium">Low Risk</span>
+                <span className="text-blue-400 font-semibold uppercase tracking-wider text-[9px] px-1 bg-blue-955/40 rounded border border-blue-900/30">Secondary Check</span>
+              </div>
+            </div>
+          </div>
 
           {/* 5. Shortcuts Overlay */}
           <ShortcutHints />

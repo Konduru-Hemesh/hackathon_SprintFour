@@ -28,7 +28,7 @@ export const DocumentList: React.FC = () => {
     loadDocument,
     setPage,
     addUploadedDocument,
-    addToast
+    addToast,
   } = useStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -284,35 +284,38 @@ export const DocumentList: React.FC = () => {
       </div>
 
       {/* View Switcher Tabs */}
-      <div className="flex justify-center border-b border-slate-900/60 max-w-5xl mx-auto mb-10 w-full">
-        <button
-          onClick={() => {
-            setActiveTab('documents');
-            setSearchQuery('');
-          }}
-          className={`px-8 py-3.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === 'documents'
-              ? 'border-indigo-500 text-white bg-indigo-500/5'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/20'
-          }`}
-        >
-          <Database className="w-4 h-4" />
-          Active Workspace
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab('demos');
-            setSearchQuery('');
-          }}
-          className={`px-8 py-3.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === 'demos'
-              ? 'border-indigo-500 text-white bg-indigo-500/5'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/20'
-          }`}
-        >
-          <Sparkles className="w-4 h-4 text-indigo-400" />
-          Demo Scenarios
-        </button>
+      <div className="flex items-center justify-between border-b border-slate-900/60 max-w-5xl mx-auto mb-10 w-full">
+        <div className="flex">
+          <button
+            onClick={() => {
+              setActiveTab('documents');
+              setSearchQuery('');
+            }}
+            className={`px-8 py-3.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'documents'
+                ? 'border-indigo-500 text-white bg-indigo-500/5'
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/20'
+            }`}
+          >
+            <Database className="w-4 h-4" />
+            Active Workspace
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('demos');
+              setSearchQuery('');
+            }}
+            className={`px-8 py-3.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'demos'
+                ? 'border-indigo-500 text-white bg-indigo-500/5'
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/20'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-indigo-400" />
+            Demo Scenarios
+          </button>
+        </div>
+
       </div>
 
       {error && (

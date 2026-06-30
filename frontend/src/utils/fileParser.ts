@@ -443,6 +443,7 @@ export const parseUploadedFile = async (file: File): Promise<Document> => {
     id,
     title: file.name,
     text,
+    originalText: text,
     spans,
   };
 };
