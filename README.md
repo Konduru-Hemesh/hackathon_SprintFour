@@ -312,8 +312,9 @@ npm install --prefix frontend
 cd backend
 npm run dev
 
+#Open another terminal
 # (Terminal 2 - Frontend Client at http://localhost:5173)
-cd ../frontend
+cd frontend
 npm run dev
 ```
 
