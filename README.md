@@ -27,7 +27,6 @@ ConSeals is an intelligent Human-in-the-Loop PII Redaction Review Workbench that
 - [Our Solution](#-our-solution)
 - [Highlights](#-highlights)
 - [Key Features](#-key-features)
-- [Screenshots](#-screenshots)
 - [Architecture](#-architecture)
 - [Folder Structure](#-folder-structure)
 - [Technology Stack](#-technology-stack)
@@ -114,26 +113,6 @@ ConSeals is built around a simple philosophy: **AI detects, but humans decide**.
 *   **What it does:** Includes fully integrated screen-reader announcements (`aria-live="polite"`), clear keyboard focus outlines, and standard HTML tab flows.
 *   **Why it exists:** Software should be accessible to all compliance officers, including those relying on screen readers or switch controls.
 *   **Solves:** ADA/Section 508 compliance.
-
----
-
-## 📸 Screenshots
-
-#### Landing Page
-An enterprise-grade dashboard illustrating session activities, upload spaces, workspace stats, and interactive demo scenarios.
-![Landing Page](images/landing.png)
-
-#### Review Workspace
-Split-pane interface offering natural reading controls, keyboard shortcuts, progress indicators, and risk categorization panels.
-![Review Workspace](images/review.png)
-
-#### Summary Screen
-Dynamic completion summary with safety checklist gate status, download controls, and redacted output copy-paste preview.
-![Summary Screen](images/summary.png)
-
-#### Manual Selection
-Contextual floating annotation toolbar triggered by highlight selections, allowing immediate custom redactions.
-![Manual Selection](images/manual-selection.png)
 
 ---
 
