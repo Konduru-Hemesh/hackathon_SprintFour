@@ -1,0 +1,756 @@
+import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { useStore } from '../store/useStore';
+import {
+  FileText,
+  ChevronRight,
+  AlertTriangle,
+  ShieldAlert,
+  Upload,
+  Sparkles,
+  CheckCircle2,
+  Search,
+  Database,
+  Clock,
+  Check,
+  Shield,
+  Activity,
+  RefreshCw
+} from 'lucide-react';
+import { parseUploadedFile } from '../utils/fileParser';
+
+export const DocumentList: React.FC = () => {
+  const {
+    documents,
+    uploadedDocuments,
+    isLoading,
+    error,
+    loadDocuments,
+    loadDocument,
+    setPage,
+    addUploadedDocument,
+    addToast
+  } = useStore();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
+  const [uploadStage, setUploadStage] = useState<'idle' | 'uploading' | 'extracting' | 'detecting' | 'complete'>('idle');
+  const [latestAnalysisSummary, setLatestAnalysisSummary] = useState<{
+    id: string;
+    title: string;
+    pages: number;
+    totalSpans: number;
+    highRisk: number;
+    lowRisk: number;
+  } | null>(null);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    loadDocuments();
+  }, [loadDocuments, uploadedDocuments]);
+
+  useEffect(() => {
+    const handler = () => {
+      fileInputRef.current?.click();
+    };
+    window.addEventListener('trigger-upload-dialog', handler);
+    return () => window.removeEventListener('trigger-upload-dialog', handler);
+  }, []);
+
+  const handleSelectDoc = async (id: string) => {
+    await loadDocument(id);
+    setPage('review');
+  };
+
+  // Filtered lists
+  const filteredDocuments = useMemo(() => {
+    return documents.filter(doc =>
+      doc.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [documents, searchQuery]);
+
+  const sessionDocs = useMemo(() => {
+    return filteredDocuments.filter(doc => doc.id.startsWith('upload_'));
+  }, [filteredDocuments]);
+
+  const sampleDocs = useMemo(() => {
+    return filteredDocuments.filter(doc => !doc.id.startsWith('upload_'));
+  }, [filteredDocuments]);
+
+  // Derive workspace stats
+  const stats = useMemo(() => {
+    const total = documents.length;
+    const totalSuggestions = documents.reduce((acc, d) => acc + d.totalSpans, 0);
+    const unreviewed = documents.reduce((acc, d) => acc + d.unreviewedSpans, 0);
+    const readyCount = documents.filter(d => d.unreviewedSpans === 0).length;
+    const reviewed = totalSuggestions - unreviewed;
+    const progressPercent = totalSuggestions > 0 ? Math.round((reviewed / totalSuggestions) * 100) : 100;
+
+    return {
+      total,
+      totalSuggestions,
+      unreviewed,
+      readyCount,
+      progressPercent
+    };
+  }, [documents]);
+
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  // File parsing handler
+  const handleProcessFile = async (file: File) => {
+    if (!file) return;
+    const allowedExtensions = ['txt', 'docx', 'pdf'];
+    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+
+    if (!allowedExtensions.includes(extension)) {
+      addToast('Unsupported file type. Please upload a PDF, DOCX, or TXT file.', 'error');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      addToast('File exceeds the 5MB size limit.', 'error');
+      return;
+    }
+
+    setIsParsing(true);
+    setParseError(null);
+    setLatestAnalysisSummary(null);
+
+    try {
+      // Step 1: Uploading
+      setUploadStage('uploading');
+      await sleep(600);
+
+      // Step 2: Extracting text
+      setUploadStage('extracting');
+      const parsedDoc = await parseUploadedFile(file);
+      await sleep(600);
+
+      // Step 3: Detecting identifiers
+      setUploadStage('detecting');
+      await sleep(600);
+
+      // Step 4: Complete
+      setUploadStage('complete');
+      await sleep(500);
+
+      addUploadedDocument(parsedDoc);
+      addToast(`"${file.name}" analyzed successfully.`, 'success');
+
+      // Estimate page count
+      let pages = 1;
+      if (extension === 'pdf') {
+        pages = Math.max(1, Math.ceil(parsedDoc.text.length / 2500));
+      } else {
+        pages = Math.max(1, Math.ceil(parsedDoc.text.length / 3000));
+      }
+
+      setLatestAnalysisSummary({
+        id: parsedDoc.id,
+        title: parsedDoc.title,
+        pages,
+        totalSpans: parsedDoc.spans.length,
+        highRisk: parsedDoc.spans.filter(s => s.riskLevel === 'high').length,
+        lowRisk: parsedDoc.spans.filter(s => s.riskLevel === 'low').length,
+      });
+    } catch (err: any) {
+      console.error(err);
+      setParseError(err.message || 'Unable to extract text from this document.');
+      addToast('Text extraction failed.', 'error');
+      setUploadStage('idle');
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleProcessFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleProcessFile(file);
+    }
+  };
+
+  const getDocMeta = (title: string) => {
+    if (title.includes('Document A')) {
+      return {
+        scenario: 'Repeat Entity Blind Spot',
+        desc: 'Illustrates occurrences where an entity repeats but only some matches were caught by the AI.',
+        duration: '2 min read',
+        icon: 'repeat'
+      };
+    }
+    if (title.includes('Document B')) {
+      return {
+        scenario: 'False Positive & Adjacent PII',
+        desc: 'Demonstrates false positive alerts and adjacent contextual PII patterns requiring reviewer adjustments.',
+        duration: '3 min read',
+        icon: 'alert'
+      };
+    }
+    if (title.includes('Document C')) {
+      return {
+        scenario: 'Adjacent PII',
+        desc: 'Validates safety boundary responses and edge rendering on blank content configurations.',
+        duration: '1 min read',
+        icon: 'file'
+      };
+    }
+    return {
+      scenario: 'Clean Document',
+      desc: 'Tests safety checklist behaviors when zero suggested redaction candidates are pre-flagged.',
+      duration: '1 min read',
+      icon: 'shield'
+    };
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto py-12 px-6 flex-1 flex flex-col justify-start">
+      
+      {/* Hero Header */}
+      <header className="mb-8">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-b border-slate-900 pb-8">
+          <div className="space-y-3.5">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-[10px] text-indigo-400 font-semibold uppercase tracking-wider">
+              🛡 ConSeals
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+              AI-Assisted Privacy Review
+            </h1>
+            <p className="text-slate-400 text-sm sm:text-base max-w-2xl leading-relaxed">
+              Prevent sensitive data leaks before documents leave your organization.
+            </p>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 text-xs text-slate-400 shrink-0">
+            <div className="flex items-center gap-2.5 bg-slate-900/40 border border-slate-900 px-3.5 py-2.5 rounded-lg">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+              <span>Review AI-generated redactions</span>
+            </div>
+            <div className="flex items-center gap-2.5 bg-slate-900/40 border border-slate-900 px-3.5 py-2.5 rounded-lg">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+              <span>Catch missed detections</span>
+            </div>
+            <div className="flex items-center gap-2.5 bg-slate-900/40 border border-slate-900 px-3.5 py-2.5 rounded-lg">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+              <span>Export documents safely</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Trust & Privacy Card */}
+      <div className="mb-10 bg-slate-900/20 border border-slate-900 rounded-xl p-5">
+        <div className="flex flex-wrap items-center justify-around gap-y-3.5 gap-x-6 text-xs font-semibold text-slate-300">
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Local Processing</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>No Cloud Upload</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Reviewer Controlled</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Audit Trail Enabled</span>
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mb-8 p-4 rounded-lg bg-red-950/20 border border-red-900/50 text-red-300 text-xs flex gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+          <div>
+            <p className="font-semibold">Error Syncing Workspace Documents</p>
+            <p className="text-[11px] text-red-400/80 mt-1">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {latestAnalysisSummary && (
+        <div className="mb-8 p-6 rounded-xl bg-indigo-950/20 border border-indigo-900/50 text-slate-200 animate-fadeIn flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-indigo-400 inline-block animate-pulse" />
+              <h3 className="font-bold text-sm text-slate-100">
+                {latestAnalysisSummary.totalSpans > 0 ? 'Analysis Complete' : 'Analysis Complete: No PII detected'}
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-1 text-xs text-slate-400">
+              <div>
+                <span className="text-slate-500">Document:</span> <strong className="text-slate-300">{latestAnalysisSummary.title}</strong>
+              </div>
+              <div>
+                <span className="text-slate-500">Pages:</span> <strong className="text-slate-300">{latestAnalysisSummary.pages}</strong>
+              </div>
+              <div>
+                <span className="text-slate-500">Identifiers:</span> <strong className="text-slate-300">{latestAnalysisSummary.totalSpans}</strong>
+              </div>
+              <div>
+                <span className="text-slate-500">Status:</span>{' '}
+                <strong className={latestAnalysisSummary.totalSpans > 0 ? 'text-indigo-400' : 'text-emerald-450'}>
+                  {latestAnalysisSummary.totalSpans > 0 ? 'Ready for review' : 'Ready for export'}
+                </strong>
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              {latestAnalysisSummary.totalSpans > 0 ? (
+                <span>
+                  Detected <strong className="text-red-400">{latestAnalysisSummary.highRisk} High Risk</strong> and{' '}
+                  <strong className="text-blue-400">{latestAnalysisSummary.lowRisk} Low Risk</strong> suggestions.
+                </span>
+              ) : (
+                <span className="text-emerald-400 font-semibold">✓ No sensitive identifiers detected.</span>
+              )}
+            </p>
+          </div>
+          <div className="flex gap-3 shrink-0">
+            <button
+              onClick={() => setLatestAnalysisSummary(null)}
+              className="px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-450 hover:text-slate-200 border border-slate-800 text-xs font-bold cursor-pointer transition-colors"
+            >
+              Dismiss
+            </button>
+            <button
+              onClick={async () => {
+                await loadDocument(latestAnalysisSummary.id);
+                setLatestAnalysisSummary(null);
+                setPage('review');
+              }}
+              className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md cursor-pointer transition-colors"
+            >
+              Enter Review Workspace
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* Left Column: Upload & Stats & Activity (span 5) */}
+        <div className="lg:col-span-5 space-y-6">
+          
+          {/* Upload Area */}
+          <div className="bg-slate-900/40 border border-slate-900 rounded-xl p-6">
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <Upload className="w-3.5 h-3.5" />
+              Upload Document
+            </h2>
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => !isParsing && fileInputRef.current?.click()}
+              className={`border border-dashed rounded-xl p-10 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center min-h-[220px] ${
+                isDragOver
+                  ? 'border-indigo-400 bg-indigo-950/20 shadow-[0_0_20px_rgba(99,102,241,0.08)]'
+                  : 'border-slate-800 hover:border-slate-700 bg-slate-950/40 hover:bg-slate-950/70 hover:shadow-lg'
+              } ${isParsing ? 'cursor-not-allowed opacity-80' : ''}`}
+            >
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept=".txt,.pdf,.docx"
+                className="hidden"
+                disabled={isParsing}
+              />
+              {isParsing ? (
+                <div className="space-y-4">
+                  <div className="w-10 h-10 border-2 border-slate-900 border-t-indigo-500 rounded-full animate-spin mx-auto" />
+                  <p className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                    {uploadStage === 'uploading' && 'Uploading File...'}
+                    {uploadStage === 'extracting' && 'Extracting text structure...'}
+                    {uploadStage === 'detecting' && 'Running PII models...'}
+                    {uploadStage === 'complete' && 'Analysis complete'}
+                  </p>
+                  <div className="flex items-center justify-center gap-2 mt-3">
+                    <span className={`w-2 h-2 rounded-full transition-colors duration-200 ${uploadStage === 'uploading' ? 'bg-indigo-500' : 'bg-slate-800'}`} />
+                    <span className="text-slate-800 text-[10px]">→</span>
+                    <span className={`w-2 h-2 rounded-full transition-colors duration-200 ${uploadStage === 'extracting' ? 'bg-indigo-500' : 'bg-slate-800'}`} />
+                    <span className="text-slate-800 text-[10px]">→</span>
+                    <span className={`w-2 h-2 rounded-full transition-colors duration-200 ${uploadStage === 'detecting' ? 'bg-indigo-500' : 'bg-slate-800'}`} />
+                    <span className="text-slate-800 text-[10px]">→</span>
+                    <span className={`w-2 h-2 rounded-full transition-colors duration-200 ${uploadStage === 'complete' ? 'bg-emerald-500' : 'bg-slate-800'}`} />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="p-4 rounded-full bg-slate-900 border border-slate-850 mb-4 transition-transform duration-200">
+                    <Upload className="w-8 h-8 text-slate-450" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-200">
+                    Drag & drop document here, or <span className="text-indigo-400 hover:underline">browse files</span>
+                  </p>
+                  <p className="text-xs text-slate-500 mt-2.5 max-w-xs leading-relaxed">
+                    Accepted formats: <strong className="text-slate-400">PDF, DOCX, TXT</strong> (Max size: 5MB)
+                  </p>
+                  <div className="mt-4 px-2.5 py-1 rounded bg-slate-900 text-[10px] text-slate-405 font-mono border border-slate-850 uppercase tracking-wide">
+                    Current Session Only
+                  </div>
+                </>
+              )}
+            </div>
+
+            {parseError && (
+              <div className="mt-4 p-3.5 rounded-lg bg-red-950/20 border border-red-900/50 text-red-300 text-xs flex flex-col gap-2">
+                <p className="font-semibold flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-red-400" />
+                  Unable to parse this document.
+                </p>
+                <p className="text-[11px] text-red-450/80 leading-normal">{parseError}</p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setParseError(null);
+                    fileInputRef.current?.click();
+                  }}
+                  className="mt-1 self-start px-3 py-1.5 bg-red-950 hover:bg-red-900 text-red-300 rounded border border-red-900/50 font-semibold cursor-pointer text-xs transition-colors"
+                >
+                  Retry Upload
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Workspace Overview */}
+          <div className="bg-slate-900/40 border border-slate-900 rounded-xl p-6">
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <Activity className="w-3.5 h-3.5" />
+              Workspace Overview
+            </h2>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-950/40 p-4 rounded-xl border border-slate-900 flex flex-col justify-between min-h-[90px]">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-[10px] uppercase font-bold tracking-wider">Documents</span>
+                  <FileText className="w-4 h-4" />
+                </div>
+                <span className="text-2xl font-bold text-white tracking-tight mt-2">{stats.total}</span>
+              </div>
+
+              <div className="bg-slate-950/40 p-4 rounded-xl border border-slate-900 flex flex-col justify-between min-h-[90px]">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-[10px] uppercase font-bold tracking-wider font-semibold">Suggestions</span>
+                  <Sparkles className="w-4 h-4 text-indigo-400" />
+                </div>
+                <span className="text-2xl font-bold text-white tracking-tight mt-2">{stats.totalSuggestions}</span>
+              </div>
+
+              <div className="bg-slate-950/40 p-4 rounded-xl border border-slate-900 flex flex-col justify-between min-h-[90px]">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-[10px] uppercase font-bold tracking-wider font-semibold">Needs Review</span>
+                  <AlertTriangle className="w-4 h-4 text-amber-500" />
+                </div>
+                <span className="text-2xl font-bold text-amber-400 tracking-tight mt-2">{stats.unreviewed}</span>
+              </div>
+
+              <div className="bg-slate-950/40 p-4 rounded-xl border border-slate-900 flex flex-col justify-between min-h-[90px]">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-[10px] uppercase font-bold tracking-wider font-semibold">Ready to Export</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                </div>
+                <span className="text-2xl font-bold text-emerald-455 tracking-tight mt-2">{stats.readyCount}</span>
+              </div>
+            </div>
+
+            {/* Full-width progress bar */}
+            <div className="mt-6 border-t border-slate-900/60 pt-5">
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="text-slate-400 font-medium">Average Review Progress</span>
+                <span className="text-slate-200 font-bold font-mono">{stats.progressPercent}%</span>
+              </div>
+              <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-900">
+                <div
+                  className="h-full bg-indigo-500 transition-all duration-500 rounded-full"
+                  style={{ width: `${stats.progressPercent}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="bg-slate-900/40 border border-slate-900 rounded-xl p-6">
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <Clock className="w-3.5 h-3.5" />
+              Recent Activity
+            </h2>
+            <div className="space-y-3.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">Last reviewed</span>
+                <span className="text-slate-300 font-medium max-w-[180px] truncate">
+                  {documents.find(d => d.unreviewedSpans < d.totalSpans)?.title || 'No documents reviewed yet'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">Last export</span>
+                <span className="text-slate-350 font-medium">Just now</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">Uploaded this session</span>
+                <span className="text-slate-305 font-mono font-semibold">{sessionDocs.length}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">Documents ready</span>
+                <span className="text-emerald-455 font-mono font-semibold">{stats.readyCount}</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Right Column: Search + Documents (span 7) */}
+        <div className="lg:col-span-7 space-y-6">
+          
+          {/* Search bar */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search documents or demo scenarios..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-900/30 border border-slate-900 hover:border-slate-800 rounded-xl py-3 pl-11 pr-10 text-sm text-slate-100 placeholder-slate-550 focus:outline-none focus:ring-1 focus:ring-slate-700 transition-all"
+            />
+            <Search className="absolute left-4 top-3.5 w-4 h-4 text-slate-500" />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3.5 top-3.5 p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                aria-label="Clear search"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3 border border-slate-900 rounded-xl bg-slate-900/10">
+              <div className="w-8 h-8 border-2 border-slate-900 border-t-indigo-500 rounded-full animate-spin" />
+              <p className="text-slate-500 text-xs">Loading workspace documents...</p>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              
+              {/* Your Documents Section */}
+              <div>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5" />
+                  Your Documents ({sessionDocs.length})
+                </h3>
+                
+                {sessionDocs.length === 0 ? (
+                  <div className="text-center py-10 border border-dashed border-slate-900 rounded-xl bg-slate-950/20 p-6">
+                    <p className="text-slate-400 text-xs mb-3">No documents uploaded yet.</p>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-md shadow-indigo-950/30"
+                    >
+                      Upload a document to begin reviewing
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    {sessionDocs.map((doc) => (
+                      <button
+                        key={doc.id}
+                        onClick={() => handleSelectDoc(doc.id)}
+                        className="group text-left p-4.5 bg-slate-900/30 hover:bg-slate-900/60 border border-slate-900 hover:border-slate-800 rounded-xl transition-all duration-150 flex items-center justify-between cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-700"
+                      >
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <div className="p-3 rounded bg-slate-950 text-indigo-400 border border-slate-900 group-hover:text-indigo-350 transition-colors">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="font-semibold text-xs text-slate-200 group-hover:text-white truncate">
+                              {doc.title}
+                            </h4>
+                            <div className="flex items-center gap-2.5 text-[10px] text-slate-500 mt-1">
+                              <span>User Uploaded</span>
+                              <span>•</span>
+                              <span>{doc.totalSpans} suggestions</span>
+                              {doc.unreviewedSpans > 0 ? (
+                                <span className="text-amber-500 font-medium flex items-center gap-0.5">
+                                  <ShieldAlert className="w-3 h-3" />
+                                  {doc.unreviewedSpans} remaining
+                                </span>
+                              ) : (
+                                <span className="text-emerald-400 font-semibold flex items-center gap-0.5">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  Ready
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Curated Demo scenarios */}
+              <div className="space-y-4">
+                
+                {/* Quick Demo Banner */}
+                <div className="bg-slate-900/30 border border-slate-900 rounded-xl p-5 flex gap-4 items-start">
+                  <div className="p-2.5 rounded-lg bg-indigo-950/40 text-indigo-400 border border-indigo-900/60 shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-200">Quick Demo</h4>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      New to ConSeals? Open one of these curated scenarios to experience common AI redaction failure modes in under two minutes.
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Demo Scenarios ({sampleDocs.length})
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Curated environments designed to evaluate key features of our redaction workflow.
+                  </p>
+                </div>
+
+                {sampleDocs.length === 0 ? (
+                  <div className="text-center py-10 border border-dashed border-slate-900 rounded-xl bg-slate-950/20">
+                    <p className="text-slate-500 text-xs">No demo scenarios found.</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {sampleDocs.map((doc) => {
+                      const meta = getDocMeta(doc.title);
+                      
+                      // Render Icon dynamically
+                      let IconComponent = FileText;
+                      if (meta.icon === 'repeat') IconComponent = RefreshCw;
+                      else if (meta.icon === 'alert') IconComponent = AlertTriangle;
+                      else if (meta.icon === 'shield') IconComponent = Shield;
+
+                      return (
+                        <div
+                          key={doc.id}
+                          className="group bg-slate-900/20 hover:bg-slate-900/40 border border-slate-900 hover:border-slate-800 rounded-xl p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4"
+                        >
+                          <div className="flex items-start gap-4 min-w-0">
+                            <div className="p-3 rounded-lg bg-slate-950 text-slate-400 group-hover:text-indigo-400 transition-colors border border-slate-900 mt-0.5 shrink-0">
+                              <IconComponent className="w-5 h-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h4 className="font-semibold text-xs text-slate-200">
+                                  {meta.scenario}
+                                </h4>
+                                {doc.unreviewedSpans === 0 ? (
+                                  <span className="shrink-0 inline-flex items-center gap-0.5 text-[9px] font-semibold text-emerald-400 bg-emerald-950/20 px-1.5 py-0.5 rounded border border-emerald-900/50">
+                                    <CheckCircle2 className="w-2.5 h-2.5" />
+                                    Reviewed
+                                  </span>
+                                ) : (
+                                  <span className="shrink-0 inline-flex items-center gap-0.5 text-[9px] font-semibold text-amber-500 bg-amber-950/20 px-1.5 py-0.5 rounded border border-amber-900/50">
+                                    <AlertTriangle className="w-2.5 h-2.5" />
+                                    Needs Review
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-450 mt-1 leading-relaxed">
+                                {meta.desc}
+                              </p>
+                              <div className="flex items-center gap-3 text-[10px] text-slate-500 mt-2.5">
+                                <span className="flex items-center gap-1 font-mono">
+                                  <Clock className="w-3 h-3 text-slate-600" />
+                                  {meta.duration}
+                                </span>
+                                <span>•</span>
+                                <span>{doc.totalSpans} suggestions</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <button
+                            onClick={() => handleSelectDoc(doc.id)}
+                            className="w-full md:w-auto px-4 py-2 bg-slate-950 hover:bg-slate-900 border border-slate-855 hover:border-slate-800 text-slate-200 hover:text-white rounded-lg text-xs font-bold transition-all shrink-0 flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            Open Scenario
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-550 group-hover:text-slate-350 transition-colors" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Why these demo scenarios panel */}
+              <div className="bg-slate-900/20 border border-slate-900 rounded-xl p-5 space-y-3">
+                <h4 className="text-xs font-bold text-slate-300">Why these demo scenarios?</h4>
+                <p className="text-xs text-slate-450 leading-relaxed">
+                  Each scenario demonstrates a real-world AI redaction failure:
+                </p>
+                <ul className="space-y-1.5 text-xs text-slate-455 pl-4 list-disc marker:text-indigo-500">
+                  <li><strong>Repeat entity blind spots:</strong> Where AI redactions flag an entity once but miss subsequent occurrences.</li>
+                  <li><strong>False positives:</strong> Where non-sensitive technology terms or headers are incorrectly flagged as personal names.</li>
+                  <li><strong>Adjacent contextual PII:</strong> Where context clues contain sensitive information bordering ignored sections.</li>
+                  <li><strong>Clean document validation:</strong> Checking pipeline behaviors and safety checklist gates with zero pre-flagged PII.</li>
+                </ul>
+                <p className="text-xs text-slate-455 leading-relaxed pt-2 border-t border-slate-900/60">
+                  These scenarios help reviewers quickly evaluate the product without uploading their own files.
+                </p>
+              </div>
+
+              {/* No matches search results */}
+              {filteredDocuments.length === 0 && documents.length > 0 && (
+                <div className="text-center py-16 border border-dashed border-slate-900 rounded-xl flex flex-col items-center justify-center p-6 bg-slate-950/20">
+                  <div className="w-12 h-12 rounded-full bg-slate-900/80 flex items-center justify-center text-slate-500 mb-4 border border-slate-800">
+                    <Search className="w-5 h-5" />
+                  </div>
+                  <p className="text-slate-350 font-semibold text-xs">No matching documents found.</p>
+                  <p className="text-slate-500 text-[11px] mt-1">Try another search or clear the filter.</p>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="mt-4 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 hover:border-slate-750 rounded-lg text-xs font-bold cursor-pointer transition-colors"
+                  >
+                    Clear Filter
+                  </button>
+                </div>
+              )}
+
+            </div>
+          )}
+
+        </div>
+
+      </div>
+
+    </div>
+  );
+};

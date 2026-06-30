@@ -1,0 +1,26 @@
+{
+  "name": "conseal-backend",
+  "version": "1.0.0",
+  "description": "PII Redaction Correction Backend",
+  "main": "dist/app.js",
+  "scripts": {
+    "dev": "ts-node src/app.ts",
+    "build": "tsc",
+    "start": "node dist/app.js",
+    "lint": "oxlint src",
+    "test": "vitest run src"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.12.7",
+    "oxlint": "^1.72.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5",
+    "vitest": "^4.1.9"
+  }
+}
